@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品資料清理</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, 'Microsoft JhengHei', sans-serif; background: #f0f2f5; color: #333; }
+.wrap { max-width: 860px; margin: 32px auto; padding: 20px; }
+h1 { text-align: center; margin-bottom: 8px; color: #2c3e50; }
+.sub { text-align: center; color: #888; margin-bottom: 24px; font-size: .9em; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+.card h3 { color: #2c3e50; margin-bottom: 10px; }
+.rule-list { padding-left: 18px; color: #555; line-height: 2; }
+
+.drop-zone {
+  border: 2px dashed #3498db;
+  border-radius: 10px;
+  padding: 36px 20px;
+  text-align: center;
+  background: #fff;
+  transition: .2s;
+  margin-bottom: 14px;
+}
+.drop-zone.over { background: #ebf5fb; border-color: #2980b9; }
+.drop-icon { font-size: 44px; margin-bottom: 10px; }
+.hint { color: #aaa; font-size: .83em; margin-top: 8px; }
+
+.btn-browse {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 9px 28px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .95em;
+  font-weight: bold;
+}
+.btn-browse:hover { background: #2980b9; }
+
+.file-item { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 7px;
+  padding: 9px 14px; margin-bottom: 7px; display: flex; align-items: center; gap: 10px; }
+.file-name { font-weight: bold; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: #bbb; font-size: .8em; white-space: nowrap; }
+.rm { background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 3px 10px;
+  border-radius: 5px; cursor: pointer; font-size: .78em; white-space: nowrap; }
+.rm:hover { background: #fdf0ee; }
+
+.btn-process { display: block; width: 100%; padding: 13px; border: none; border-radius: 8px;
+  cursor: pointer; font-size: 1em; font-weight: bold; transition: .18s; margin-bottom: 18px;
+  background: #3498db; color: #fff; }
+.btn-process:disabled { opacity: .4; cursor: not-allowed; }
+.btn-process:not(:disabled):hover { background: #2980b9; }
+
+.btn-green { background: #27ae60; color: #fff; font-size: .87em; padding: 7px 16px;
+  display: inline-block; width: auto; border-radius: 6px; cursor: pointer; border: none; }
+.btn-green:hover { background: #219a52; }
+
+.result-card { background: #fff; border: 1px solid #ddd; border-radius: 10px;
+  margin-bottom: 16px; overflow: hidden; }
+.result-hd { background: #2c3e50; color: #fff; padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.result-hd .fname { font-weight: bold; word-break: break-all; }
+.result-bd { padding: 16px; }
+.stats { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.stat { text-align: center; background: #f8f9fa; border: 1px solid #e9ecef;
+  border-radius: 7px; padding: 10px 14px; flex: 1; min-width: 80px; }
+.stat-num { font-size: 1.6em; font-weight: bold; color: #3498db; line-height: 1.1; }
+.stat-lbl { font-size: .7em; color: #999; margin-top: 2px; }
+.tog-btn { background: none; border: 1px solid #3498db; color: #3498db; padding: 4px 12px;
+  border-radius: 5px; cursor: pointer; font-size: .8em; margin-bottom: 8px; }
+.tog-btn:hover { background: #ebf5fb; }
+.detail { display: none; }
+.detail.open { display: block; }
+table { width: 100%; border-collapse: collapse; font-size: .82em; }
+th { background: #f1f3f4; padding: 7px 8px; text-align: left; border-bottom: 2px solid #ddd; white-space: nowrap; }
+td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; word-break: break-all; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.old { color: #c0392b; }
+.new { color: #27ae60; }
+.no-change { color: #aaa; font-style: italic; font-size: .87em; }
+.diag { background: #f4f6f8; border: 1px solid #dce1e7; border-radius: 7px;
+  padding: 10px 12px; margin-bottom: 14px; font-size: .8em; }
+.diag summary { cursor: pointer; color: #555; font-weight: bold; }
+.diag-body { margin-top: 8px; }
+.diag-cols { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.col-tag { padding: 2px 8px; border-radius: 4px; font-size: .86em; border: 1px solid; }
+.col-hit { background: #d5e8d4; color: #2d6a2d; border-color: #b8d4b8; font-weight: bold; }
+.col-nrm { background: #f1f3f4; color: #777; border-color: #ddd; }
+.err-box { background: #fdf0ee; border: 1px solid #e74c3c; color: #c0392b;
+  padding: 10px 14px; border-radius: 7px; margin-bottom: 14px; font-size: .88em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>商品資料清理</h1>
+  <p class="sub">
+    清理「商品名稱」、「商品規格名稱」中的特殊符號與全形字元<br>
+    <small style="color:#27ae60">&#x2705; ZIP 層 XML 手術，100% 保留原始格式、樣式、凍結窗格、隱藏列</small>
+  </p>
+
+  <div class="card">
+    <h3>處理規則</h3>
+    <ul class="rule-list">
+      <li>「<strong>商品名稱</strong>」：全形 → 半形，特殊符號 → 空格</li>
+      <li>「<strong>商品規格名稱</strong>」：同上</li>
+    </ul>
+  </div>
+
+  <div id="libErr"></div>
+  <div id="jsErr" style="display:none" class="err-box"></div>
+
+  <!-- File input: OUTSIDE drop zone, hidden -->
+  <input type="file" id="fileInput" multiple accept=".xlsx" style="display:none">
+
+  <!-- Drop zone: div only, for drag-and-drop visual -->
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">&#x1F4C2;</div>
+    <div><strong>將 .xlsx 檔案拖曳到此處</strong></div>
+    <!-- Button directly triggers input.click() — always works in all browsers -->
+    <button type="button" class="btn-browse" id="browseBtn">選擇檔案</button>
+    <div class="hint">可同時選取多個檔案</div>
+  </div>
+
+  <div id="fileList"></div>
+  <button type="button" class="btn-process" id="processBtn" disabled>開始清理</button>
+  <div id="results"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+// Show any uncaught JS errors visibly on the page
+window.onerror = function(msg, src, line, col, err) {
+  var box = document.getElementById('jsErr');
+  box.style.display = 'block';
+  box.textContent = '⚠ JS Error: ' + msg + ' (line ' + line + ')';
+};
+window.addEventListener('unhandledrejection', function(e) {
+  var box = document.getElementById('jsErr');
+  box.style.display = 'block';
+  box.textContent = '⚠ Error: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+});
+
+// ── Config ────────────────────────────────────────────────────────────────────
+var TARGETS = ['商品名稱', '商品規格名稱'];
+
+var CJK_MAP = [
+  ['。','.'],['、',','],['「','"'],['」','"'],
+  ['『',"'"],['』',"'"],['【','['],['】',']'],
+  ['《','<'],['》','>'],['〈','<'],['〉','>'],
+  ['〔','['],['〕',']'],['—','-'],['–','-'],
+  ['―','-'],['…','...'],['·','.'],['・','.'],
+  ['‘',"'"],['’',"'"],['“','"'],['”','"'],
+  ['　',' ']
+];
+
+var KEEP_RE = new RegExp(
+  '[^' +
+  '一-鿿' +   // CJK Unified Ideographs
+  '㐀-䶿' +   // CJK Extension A
+  '豈-﫿' +   // CJK Compatibility Ideographs
+  '가-힯' +   // Hangul Syllables
+  'ぁ-ゟ' +   // Hiragana
+  '゠-ヿ' +   // Katakana
+  ' -~' +   // ASCII printable
+  'À-ɏ' +   // Latin Extended A+B
+  ']', 'g');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function cleanStr(v) {
+  if (v == null) { return v; }
+  var s = String(v);
+  if (!s.trim()) { return v; }
+  s = s.normalize('NFKC');
+  for (var i = 0; i < CJK_MAP.length; i++) {
+    s = s.split(CJK_MAP[i][0]).join(CJK_MAP[i][1]);
+  }
+  s = s.replace(KEEP_RE, ' ');
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+function normHeader(v) {
+  return String(v == null ? '' : v).trim().normalize('NFKC');
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function xmlEnc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var files   = [];
+var results = [];
+
+// ── UI wiring ─────────────────────────────────────────────────────────────────
+var fileInput  = document.getElementById('fileInput');
+var browseBtn  = document.getElementById('browseBtn');
+var processBtn = document.getElementById('processBtn');
+var dropZone   = document.getElementById('dropZone');
+
+// "選擇檔案" button → directly call input.click() (always allowed as direct user gesture)
+browseBtn.addEventListener('click', function () {
+  fileInput.click();
+});
+
+// File input change
+fileInput.addEventListener('change', function () {
+  addFiles(Array.prototype.slice.call(fileInput.files));
+  fileInput.value = '';
+});
+
+// Drag-and-drop on the drop zone div
+dropZone.addEventListener('dragover', function (e) {
+  e.preventDefault();
+  dropZone.classList.add('over');
+});
+dropZone.addEventListener('dragleave', function (e) {
+  if (!dropZone.contains(e.relatedTarget)) {
+    dropZone.classList.remove('over');
+  }
+});
+dropZone.addEventListener('drop', function (e) {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  addFiles(Array.prototype.slice.call(e.dataTransfer.files));
+});
+
+// Process button
+processBtn.addEventListener('click', processAll);
+
+// Library check after 4s
+setTimeout(function () {
+  if (typeof XLSX === 'undefined' || typeof JSZip === 'undefined') {
+    document.getElementById('libErr').innerHTML =
+      '<div class="err-box">&#x26A0; 函式庫載入失敗，請確認網路連線後重新整理頁面。</div>';
+  }
+}, 4000);
+
+// ── File management ───────────────────────────────────────────────────────────
+function addFiles(list) {
+  list.forEach(function (f) {
+    if (!f.name.toLowerCase().endsWith('.xlsx')) { return; }
+    for (var i = 0; i < files.length; i++) {
+      if (files[i].name === f.name && files[i].size === f.size) { return; }
+    }
+    files.push(f);
+  });
+  renderFileList();
+}
+
+function removeFile(i) {
+  files.splice(i, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  document.getElementById('fileList').innerHTML = files.map(function (f, i) {
+    return '<div class="file-item">' +
+      '<span class="file-name">' + esc(f.name) + '</span>' +
+      '<span class="file-size">' + (f.size / 1024).toFixed(1) + ' KB</span>' +
+      '<button class="rm" onclick="removeFile(' + i + ')">移除</button>' +
+    '</div>';
+  }).join('');
+  processBtn.disabled = (files.length === 0);
+}
+
+// ── Process all files ─────────────────────────────────────────────────────────
+function processAll() {
+  if (typeof XLSX === 'undefined' || typeof JSZip === 'undefined') {
+    alert('函式庫未載入，請檢查網路連線並重新整理頁面。');
+    return;
+  }
+  processBtn.disabled = true;
+  processBtn.textContent = '處理中…';
+  results = [];
+  document.getElementById('results').innerHTML = '';
+
+  Promise.all(files.map(processFile)).then(function (res) {
+    results = res;
+    renderResults();
+    processBtn.disabled = false;
+    processBtn.textContent = '開始清理';
+  }).catch(function (err) {
+    alert('處理失敗：' + (err && err.message ? err.message : String(err)));
+    processBtn.disabled = false;
+    processBtn.textContent = '開始清理';
+  });
+}
+
+// ── Process one file ──────────────────────────────────────────────────────────
+function processFile(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = function () { reject(new Error('Cannot read ' + file.name)); };
+    reader.onload = function (e) {
+      try { processFileData(file, e.target.result, resolve, reject); }
+      catch (ex) { reject(ex); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function processFileData(file, ab, resolve, reject) {
+  // ── Phase 1: SheetJS — detect which cells need cleaning ──────────────────
+  var wb = XLSX.read(new Uint8Array(ab), { type: 'array', cellStyles: false });
+  var diag         = [];
+  var changes      = [];      // one entry per cell (shown in UI)
+  var needsBySheet = {};      // 'sheet1' → [{addr, cleaned}, ...]
+
+  wb.SheetNames.forEach(function (shName, shIdx) {
+    var ws = wb.Sheets[shName];
+    if (!ws || !ws['!ref']) { return; }
+    var range = XLSX.utils.decode_range(ws['!ref']);
+
+    // Find first row that contains any target column header
+    var hdrRow = -1;
+    outer:
+    for (var R = range.s.r; R <= range.e.r; R++) {
+      for (var C = range.s.c; C <= range.e.c; C++) {
+        var hc = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+        if (hc && TARGETS.indexOf(normHeader(hc.v)) !== -1) {
+          hdrRow = R;
+          break outer;
+        }
+      }
+    }
+
+    if (hdrRow === -1) {
+      diag.push({ name: shName, hdrRow: -1, rowCount: 0, cols: [] });
+      return;
+    }
+
+    // Map column index → column name for target columns
+    var targetCols = {};
+    var allCols    = [];
+    for (var C = range.s.c; C <= range.e.c; C++) {
+      var hc = ws[XLSX.utils.encode_cell({ r: hdrRow, c: C })];
+      if (!hc || hc.v == null || hc.v === '') { continue; }
+      var h = normHeader(hc.v);
+      allCols.push({ norm: h, hit: TARGETS.indexOf(h) !== -1 });
+      if (TARGETS.indexOf(h) !== -1) { targetCols[C] = String(hc.v); }
+    }
+    diag.push({ name: shName, hdrRow: hdrRow + 1, rowCount: range.e.r - hdrRow, cols: allCols });
+
+    if (Object.keys(targetCols).length === 0) { return; }
+
+    var shKey = 'sheet' + (shIdx + 1);
+    needsBySheet[shKey] = [];
+
+    for (var R = hdrRow + 1; R <= range.e.r; R++) {
+      var cols = Object.keys(targetCols);
+      for (var ci = 0; ci < cols.length; ci++) {
+        var C    = parseInt(cols[ci], 10);
+        var addr = XLSX.utils.encode_cell({ r: R, c: C });
+        var cell = ws[addr];
+        if (!cell || cell.v == null || cell.v === '') { continue; }
+        var raw     = String(cell.v);
+        var cleaned = cleanStr(raw);
+        if (raw === cleaned) { continue; }
+        needsBySheet[shKey].push({ addr: addr, cleaned: cleaned });
+        changes.push({ sheet: shName, row: R + 1, col: targetCols[C], before: raw, after: cleaned });
+      }
+    }
+  });
+
+  // ── Phase 2+3: JSZip — patch sharedStrings.xml ───────────────────────────
+  JSZip.loadAsync(ab).then(function (zip) {
+    var ssFile = zip.file('xl/sharedStrings.xml');
+
+    if (!ssFile || changes.length === 0) {
+      return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+        .then(function (blob) { resolve({ file: file, blob: blob, changes: [], diag: diag }); });
+    }
+
+    return ssFile.async('string').then(function (ssXml) {
+      var ssIdxToClean = {};
+
+      var sheetKeys = Object.keys(needsBySheet);
+      return Promise.all(sheetKeys.map(function (shKey) {
+        var entry = zip.file('xl/worksheets/' + shKey + '.xml');
+        if (!entry) { return null; }
+        return entry.async('string').then(function (shXml) {
+          return { shKey: shKey, shXml: shXml };
+        });
+      })).then(function (sheetResults) {
+        sheetResults.forEach(function (sr) {
+          if (!sr) { return; }
+          needsBySheet[sr.shKey].forEach(function (need) {
+            // Find the shared-string index for this cell address
+            var searchStr = 'r="' + need.addr + '"';
+            var rPos = sr.shXml.indexOf(searchStr);
+            if (rPos === -1) { return; }
+            var cStart = sr.shXml.lastIndexOf('<c', rPos);
+            if (cStart === -1) { return; }
+            var cClose = sr.shXml.indexOf('>', cStart);
+            if (cClose === -1) { return; }
+            var ctag = sr.shXml.slice(cStart, cClose + 1);
+            if (ctag.indexOf('t="s"') === -1) { return; }
+            var endC  = sr.shXml.indexOf('</c>', cClose);
+            var inner = sr.shXml.slice(cClose + 1, endC === -1 ? sr.shXml.length : endC);
+            var m = /<v>(\d+)<\/v>/.exec(inner);
+            if (m) { ssIdxToClean[parseInt(m[1], 10)] = need.cleaned; }
+          });
+        });
+
+        zip.file('xl/sharedStrings.xml', rebuildSS(ssXml, ssIdxToClean));
+
+        return zip.generateAsync({ type: 'blob', compression: 'DEFLATE',
+                                   compressionOptions: { level: 6 } })
+          .then(function (blob) { resolve({ file: file, blob: blob, changes: changes, diag: diag }); });
+      });
+    });
+  }).catch(reject);
+}
+
+// ── Rebuild sharedStrings.xml ─────────────────────────────────────────────────
+function rebuildSS(xml, ssIdxToClean) {
+  if (Object.keys(ssIdxToClean).length === 0) { return xml; }
+  var result  = [];
+  var pos     = 0;
+  var siIdx   = 0;
+  var OPEN    = '<si>';
+  var CLOSE   = '</si>';
+  var first   = xml.indexOf(OPEN);
+  if (first === -1) { return xml; }
+  result.push(xml.slice(0, first));
+  pos = first;
+  while (pos < xml.length) {
+    var s = xml.indexOf(OPEN, pos);
+    if (s === -1) { result.push(xml.slice(pos)); break; }
+    var e = xml.indexOf(CLOSE, s);
+    if (e === -1) { result.push(xml.slice(pos)); break; }
+    e += CLOSE.length;
+    if (ssIdxToClean.hasOwnProperty(siIdx)) {
+      result.push('<si><t xml:space="preserve">' + xmlEnc(ssIdxToClean[siIdx]) + '</t></si>');
+    } else {
+      result.push(xml.slice(s, e));
+    }
+    pos = e;
+    siIdx++;
+  }
+  return result.join('');
+}
+
+// ── Download ──────────────────────────────────────────────────────────────────
+function download(idx) {
+  var r   = results[idx];
+  var url = URL.createObjectURL(r.blob);
+  var a   = document.createElement('a');
+  a.href     = url;
+  a.download = r.file.name.replace(/\.xlsx$/i, '_cleaned.xlsx');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Render results ────────────────────────────────────────────────────────────
+function toggleDetail(id) {
+  var el  = document.getElementById(id);
+  var btn = document.getElementById('tog-' + id);
+  var now = el.classList.toggle('open');
+  btn.textContent = now ? '收合明細' : '查看變更明細';
+}
+
+function renderResults() {
+  document.getElementById('results').innerHTML = results.map(function (r, idx) {
+    var did = 'det-' + idx;
+
+    var diagHtml = r.diag.map(function (s) {
+      if (s.hdrRow === -1) {
+        return '<div><strong>' + esc(s.name) + '</strong>' +
+          ' <span style="color:#c0392b">&#x26A0; 未找到目標欄位</span></div>';
+      }
+      var tags = s.cols.map(function (c) {
+        return '<span class="col-tag ' + (c.hit ? 'col-hit' : 'col-nrm') + '">' + esc(c.norm) + '</span>';
+      }).join('');
+      return '<div style="margin-bottom:6px"><strong>' + esc(s.name) + '</strong>' +
+        ' 標題在第 ' + s.hdrRow + ' 行，共 ' + s.rowCount + ' 筆資料' +
+        '<div class="diag-cols">' + tags + '</div></div>';
+    }).join('');
+
+    var tRows = r.changes.slice(0, 200).map(function (c) {
+      return '<tr><td>' + esc(c.sheet) + '</td>' +
+        '<td style="text-align:center">' + c.row + '</td>' +
+        '<td>' + esc(c.col) + '</td>' +
+        '<td class="old">' + esc(c.before) + '</td>' +
+        '<td class="new">' + esc(c.after) + '</td></tr>';
+    }).join('');
+
+    var more = r.changes.length > 200
+      ? '<tr><td colspan="5" style="text-align:center;color:#aaa;font-style:italic">' +
+          '… 還有 ' + (r.changes.length - 200) + ' 筆未顯示</td></tr>'
+      : '';
+
+    var changeHtml = r.changes.length > 0
+      ? '<button class="tog-btn" id="tog-' + did + '" onclick="toggleDetail(\'' + did + '\')">' +
+          '查看變更明細</button>' +
+        '<div class="detail" id="' + did + '">' +
+          '<table><thead><tr><th>工作表</th><th>行</th><th>欄位</th>' +
+          '<th>修改前</th><th>修改後</th></tr></thead>' +
+          '<tbody>' + tRows + more + '</tbody></table></div>'
+      : '<p class="no-change">此檔案無需修改</p>';
+
+    return '<div class="result-card">' +
+      '<div class="result-hd">' +
+        '<span class="fname">' + esc(r.file.name) + '</span>' +
+        '<button class="btn-green" onclick="download(' + idx + ')">下載清理後檔案</button>' +
+      '</div>' +
+      '<div class="result-bd">' +
+        '<div class="stats"><div class="stat">' +
+          '<div class="stat-num">' + r.changes.length + '</div>' +
+          '<div class="stat-lbl">總修改數</div></div></div>' +
+        '<details class="diag"><summary>偵測到的欄位</summary>' +
+          '<div class="diag-body">' + diagHtml + '</div></details>' +
+        changeHtml +
+      '</div></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>

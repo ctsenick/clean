@@ -1,0 +1,990 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品資料清理工具 | Nicholas 謝 保險顧問</title>
+<style>
+/* ── Reset ──────────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, 'Microsoft JhengHei', sans-serif; background: #f0f2f5; color: #333; }
+
+/* ══════════════════════════════════════════════════════════
+   FIXED SIDEBARS  — completely out of flow, never overlap main
+   ══════════════════════════════════════════════════════════ */
+.ad-sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 192px;
+  overflow-y: auto;
+  padding: 14px 10px;
+  background: linear-gradient(180deg, #0d2137 0%, #1a3a5c 50%, #1e4d7a 100%);
+  z-index: 50;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.18) transparent;
+}
+.ad-sidebar::-webkit-scrollbar { width: 4px; }
+.ad-sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,.18); border-radius: 2px; }
+.ad-left  { left: 0; }
+.ad-right { right: 0; }
+
+/* ══════════════════════════════════════════════════════════
+   MAIN WRAPPER — margin matches sidebar width
+   ══════════════════════════════════════════════════════════ */
+.main-wrapper { margin: 0 192px; }
+
+/* ══════════════════════════════════════════════════════════
+   TOP BANNER
+   ══════════════════════════════════════════════════════════ */
+.ad-top {
+  background: linear-gradient(90deg, #0d2137 0%, #1a5276 50%, #0d2137 100%);
+  color: white;
+  padding: 10px 16px;
+  border-bottom: 3px solid #f39c12;
+}
+.ad-top-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.ad-top-headline { font-size: 1.02em; font-weight: bold; }
+.ad-top-headline .hl { color: #f9e04b; }
+.ad-top-cta {
+  background: #f39c12;
+  color: #1a3a5c;
+  padding: 7px 20px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: .88em;
+  white-space: nowrap;
+  border: 2px solid #e67e22;
+  transition: .18s;
+  animation: topPulse 2.5s infinite;
+}
+.ad-top-cta:hover { background: #e67e22; color: white; }
+@keyframes topPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(243,156,18,.5); }
+  50%      { box-shadow: 0 0 0 7px rgba(243,156,18,0); }
+}
+.ad-top-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.ad-top-tag {
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 12px;
+  padding: 3px 12px;
+  font-size: .78em;
+  color: rgba(255,255,255,.92);
+  text-decoration: none;
+  transition: .15s;
+  white-space: nowrap;
+}
+.ad-top-tag:hover { background: rgba(255,255,255,.25); border-color: #f39c12; }
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR CONTENT
+   ══════════════════════════════════════════════════════════ */
+.sidebar-heading {
+  color: #f9e04b;
+  font-size: .78em;
+  font-weight: bold;
+  letter-spacing: .06em;
+  text-align: center;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.18);
+}
+.ins-card {
+  display: block;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 10px;
+  padding: 10px 10px 8px;
+  margin-bottom: 10px;
+  text-decoration: none;
+  color: white;
+  transition: .18s;
+}
+.ins-card:hover {
+  background: rgba(255,255,255,.17);
+  transform: translateY(-2px);
+  border-color: #f39c12;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+.ins-icon  { font-size: 1.55em; text-align: center; margin-bottom: 4px; }
+.ins-title { font-weight: bold; font-size: .82em; color: #f9e04b; text-align: center; margin-bottom: 4px; }
+.ins-desc  { font-size: .69em; color: rgba(255,255,255,.82); line-height: 1.55; margin-bottom: 7px; }
+.ins-cta   {
+  display: block;
+  background: #f39c12;
+  color: #1a3a5c;
+  font-size: .7em;
+  font-weight: bold;
+  padding: 4px 0;
+  border-radius: 10px;
+  text-align: center;
+}
+.ins-cta-red { background: #e74c3c; color: white; }
+.ad-divider  { border: none; border-top: 1px solid rgba(255,255,255,.15); margin: 10px 0; }
+
+/* Right sidebar contact */
+.contact-wrap  { text-align: center; color: white; }
+.contact-name  { font-size: .95em; font-weight: bold; color: #f9e04b; margin-bottom: 2px; }
+.contact-title { font-size: .72em; color: rgba(255,255,255,.65); margin-bottom: 12px; }
+.qr-box        { background: white; border-radius: 10px; padding: 8px; margin-bottom: 6px; }
+.qr-box img    { width: 100%; border-radius: 5px; display: block; }
+.qr-fallback   { background: #f0f2f5; border-radius: 5px; padding: 18px 8px; font-size: .7em; color: #555; text-align: center; line-height: 1.6; }
+.qr-hint       { font-size: .65em; color: rgba(255,255,255,.55); margin-bottom: 10px; }
+.line-id-badge {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: .74em;
+  margin-bottom: 10px;
+  color: rgba(255,255,255,.88);
+}
+.line-id-badge strong { color: #7cfc00; }
+.contact-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: .78em;
+  font-weight: bold;
+  margin-bottom: 7px;
+  transition: .15s;
+  color: white;
+}
+.btn-line-green { background: #00c300; }
+.btn-line-green:hover { background: #00a800; }
+.btn-ig { background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); }
+.btn-ig:hover { opacity: .88; }
+.health-cta {
+  display: block;
+  background: linear-gradient(135deg,#c0392b,#e74c3c);
+  color: white;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 10px;
+  font-size: .78em;
+  font-weight: bold;
+  text-decoration: none;
+  margin-top: 10px;
+  border: 2px solid rgba(255,255,255,.25);
+  transition: .18s;
+  animation: redPulse 2.2s infinite;
+}
+.health-cta:hover { background: #e74c3c; }
+@keyframes redPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(231,76,60,.45); }
+  60%      { box-shadow: 0 0 0 9px rgba(231,76,60,0); }
+}
+.trust-badge { font-size: .65em; color: rgba(255,255,255,.5); text-align: center; margin-top: 10px; line-height: 1.8; }
+
+/* ══════════════════════════════════════════════════════════
+   BOTTOM BANNER
+   ══════════════════════════════════════════════════════════ */
+.ad-bottom {
+  background: linear-gradient(90deg, #0d2137 0%, #1a5276 50%, #0d2137 100%);
+  color: white;
+  padding: 16px 20px;
+  border-top: 3px solid #f39c12;
+}
+.ad-bottom-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+.footer-tagline { font-size: 1em; font-weight: bold; color: #f9e04b; }
+.footer-tagline small { display: block; font-size: .75em; color: rgba(255,255,255,.7); font-weight: normal; margin-top: 3px; }
+.footer-products { display: flex; gap: 7px; flex-wrap: wrap; }
+.footer-tag {
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 14px;
+  padding: 4px 12px;
+  font-size: .8em;
+  text-decoration: none;
+  color: white;
+  transition: .15s;
+  white-space: nowrap;
+}
+.footer-tag:hover { background: rgba(255,255,255,.22); border-color: #f39c12; }
+.footer-contacts { display: flex; gap: 9px; flex-wrap: wrap; }
+.footer-btn {
+  padding: 7px 18px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: .82em;
+  font-weight: bold;
+  transition: .15s;
+  color: white;
+  white-space: nowrap;
+}
+.footer-line { background: #00c300; }
+.footer-line:hover { background: #00a800; }
+.footer-ig { background: linear-gradient(45deg,#f09433,#dc2743); }
+.footer-ig:hover { opacity: .88; }
+
+/* ══════════════════════════════════════════════════════════
+   ORIGINAL TOOL STYLES  (identical to c.html)
+   ══════════════════════════════════════════════════════════ */
+.wrap { max-width: 860px; margin: 32px auto; padding: 20px; }
+h1 { text-align: center; margin-bottom: 8px; color: #2c3e50; }
+.sub { text-align: center; color: #888; margin-bottom: 24px; font-size: .9em; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+.card h3 { color: #2c3e50; margin-bottom: 10px; }
+.rule-list { padding-left: 18px; color: #555; line-height: 2; }
+.drop-zone {
+  display: block;
+  border: 2px dashed #3498db;
+  border-radius: 10px;
+  padding: 36px 20px;
+  text-align: center;
+  background: #fff;
+  transition: .2s;
+  margin-bottom: 14px;
+}
+.drop-zone.over { background: #ebf5fb; border-color: #2980b9; }
+.drop-icon { font-size: 44px; margin-bottom: 10px; }
+.hint { color: #aaa; font-size: .83em; margin-top: 8px; }
+.btn-browse {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 9px 28px;
+  background: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: .95em;
+  font-weight: bold;
+}
+.btn-browse:hover { background: #2980b9; }
+.file-item { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 7px;
+  padding: 9px 14px; margin-bottom: 7px; display: flex; align-items: center; gap: 10px; }
+.file-name { font-weight: bold; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-size { color: #bbb; font-size: .8em; white-space: nowrap; }
+.rm { background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 3px 10px;
+  border-radius: 5px; cursor: pointer; font-size: .78em; white-space: nowrap; }
+.rm:hover { background: #fdf0ee; }
+.btn-process { display: block; width: 100%; padding: 13px; border: none; border-radius: 8px;
+  cursor: pointer; font-size: 1em; font-weight: bold; transition: .18s; margin-bottom: 18px;
+  background: #3498db; color: #fff; }
+.btn-process:disabled { opacity: .4; cursor: not-allowed; }
+.btn-process:not(:disabled):hover { background: #2980b9; }
+.btn-green { background: #27ae60; color: #fff; font-size: .87em; padding: 7px 16px;
+  display: inline-block; width: auto; border-radius: 6px; cursor: pointer; border: none; }
+.btn-green:hover { background: #219a52; }
+.result-card { background: #fff; border: 1px solid #ddd; border-radius: 10px;
+  margin-bottom: 16px; overflow: hidden; }
+.result-hd { background: #2c3e50; color: #fff; padding: 12px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.result-hd .fname { font-weight: bold; word-break: break-all; }
+.result-bd { padding: 16px; }
+.stats { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.stat { text-align: center; background: #f8f9fa; border: 1px solid #e9ecef;
+  border-radius: 7px; padding: 10px 14px; flex: 1; min-width: 80px; }
+.stat-num { font-size: 1.6em; font-weight: bold; color: #3498db; line-height: 1.1; }
+.stat-lbl { font-size: .7em; color: #999; margin-top: 2px; }
+.tog-btn { background: none; border: 1px solid #3498db; color: #3498db; padding: 4px 12px;
+  border-radius: 5px; cursor: pointer; font-size: .8em; margin-bottom: 8px; }
+.tog-btn:hover { background: #ebf5fb; }
+.detail { display: none; }
+.detail.open { display: block; }
+table { width: 100%; border-collapse: collapse; font-size: .82em; }
+th { background: #f1f3f4; padding: 7px 8px; text-align: left; border-bottom: 2px solid #ddd; white-space: nowrap; }
+td { padding: 5px 8px; border-bottom: 1px solid #f0f0f0; word-break: break-all; vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+.old { color: #c0392b; }
+.new { color: #27ae60; }
+.no-change { color: #aaa; font-style: italic; font-size: .87em; }
+.diag { background: #f4f6f8; border: 1px solid #dce1e7; border-radius: 7px;
+  padding: 10px 12px; margin-bottom: 14px; font-size: .8em; }
+.diag summary { cursor: pointer; color: #555; font-weight: bold; }
+.diag-body { margin-top: 8px; }
+.diag-cols { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+.col-tag { padding: 2px 8px; border-radius: 4px; font-size: .86em; border: 1px solid; }
+.col-hit { background: #d5e8d4; color: #2d6a2d; border-color: #b8d4b8; font-weight: bold; }
+.col-nrm { background: #f1f3f4; color: #777; border-color: #ddd; }
+.err-box { background: #fdf0ee; border: 1px solid #e74c3c; color: #c0392b;
+  padding: 10px 14px; border-radius: 7px; margin-bottom: 14px; font-size: .88em; }
+
+/* ══════════════════════════════════════════════════════════
+   YOUTUBE MODAL
+   ══════════════════════════════════════════════════════════ */
+.yt-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.82);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.yt-overlay.open { display: flex; }
+.yt-box {
+  background: #1a3a5c;
+  border-radius: 14px;
+  padding: 20px;
+  width: 90%;
+  max-width: 660px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.7);
+  border: 2px solid #f39c12;
+}
+.yt-thumb { position: relative; border-radius: 8px; overflow: hidden; cursor: pointer; display: block; }
+.yt-thumb img { width: 100%; display: block; border-radius: 8px; }
+.yt-play {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 68px; height: 68px; border-radius: 50%;
+  background: rgba(200,0,0,.9); display: flex; align-items: center; justify-content: center;
+  font-size: 1.8em; color: white; pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,.5);
+}
+.yt-opened { color: #90cdf4; font-size: .82em; margin-bottom: 6px; text-align: center; }
+.yt-footer { text-align: center; margin-top: 14px; }
+.yt-countdown { color: #f9e04b; font-weight: bold; font-size: .9em; margin-bottom: 12px; letter-spacing: .03em; }
+.yt-close {
+  padding: 9px 32px;
+  border-radius: 20px;
+  border: none;
+  background: #e74c3c;
+  color: white;
+  font-size: .9em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: .18s;
+}
+.yt-close:disabled { opacity: .35; cursor: not-allowed; }
+.yt-close:not(:disabled):hover { background: #c0392b; }
+
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1060px) {
+  .ad-sidebar { display: none; }
+  .main-wrapper { margin: 0; }
+}
+@media (max-width: 640px) {
+  .ad-top-headline { font-size: .9em; }
+  .ad-bottom-inner { flex-direction: column; align-items: center; text-align: center; }
+  .footer-products, .footer-contacts { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════ TOP BANNER ══════ -->
+<div class="ad-top">
+  <div class="ad-top-row1">
+    <div class="ad-top-headline">
+      🔍 你的保障<span class="hl">真的夠嗎？</span>
+      &nbsp;免費保單健診，讓專業幫你找出保障缺口！
+    </div>
+    <a href="https://lin.ee/oS0Owml" class="ad-top-cta" target="_blank">💬 立即免費諮詢</a>
+  </div>
+  <div class="ad-top-tags">
+    <a href="https://lin.ee/oS0Owml" class="ad-top-tag" target="_blank">✈️ 出國旅平險</a>
+    <a href="https://lin.ee/oS0Owml" class="ad-top-tag" target="_blank">🏥 實支醫療險</a>
+    <a href="https://lin.ee/oS0Owml" class="ad-top-tag" target="_blank">🛡️ 意外傷害險</a>
+    <a href="https://lin.ee/oS0Owml" class="ad-top-tag" target="_blank">💰 增額儲蓄險</a>
+    <a href="https://lin.ee/oS0Owml" class="ad-top-tag" target="_blank">🔍 免費保單健診</a>
+    <a href="https://www.instagram.com/ctse.nicholas/" class="ad-top-tag" target="_blank">📸 IG @ctse.nicholas</a>
+  </div>
+</div>
+
+<!-- ══════ FIXED LEFT SIDEBAR ══════ -->
+<div class="ad-sidebar ad-left">
+  <div class="sidebar-heading">🛡️ 保障方案</div>
+
+  <a href="https://lin.ee/oS0Owml" class="ins-card" target="_blank">
+    <div class="ins-icon">✈️</div>
+    <div class="ins-title">旅平險</div>
+    <div class="ins-desc">出國不怕意外！急診、住院、骨折通通賠。一趟旅行安心無憂！</div>
+    <span class="ins-cta">了解旅平險 →</span>
+  </a>
+
+  <a href="https://lin.ee/oS0Owml" class="ins-card" target="_blank">
+    <div class="ins-icon">🏥</div>
+    <div class="ins-title">醫療險</div>
+    <div class="ins-desc">住院花多少、保險賠多少。實支實付讓你住好病，不被帳單壓垮！</div>
+    <span class="ins-cta">了解醫療險 →</span>
+  </a>
+
+  <a href="https://lin.ee/oS0Owml" class="ins-card" target="_blank">
+    <div class="ins-icon">🛡️</div>
+    <div class="ins-title">意外險</div>
+    <div class="ins-desc">全年 365 天 24 小時守護。每天不到一杯手搖錢，輕鬆擁有百萬保障！</div>
+    <span class="ins-cta">了解意外險 →</span>
+  </a>
+
+  <a href="https://lin.ee/oS0Owml" class="ins-card" target="_blank">
+    <div class="ins-icon">💰</div>
+    <div class="ins-title">儲蓄險</div>
+    <div class="ins-desc">強迫儲蓄有紀律，到期本利雙收。邊存邊保，讓錢替你工作！</div>
+    <span class="ins-cta">了解儲蓄險 →</span>
+  </a>
+
+  <a href="https://lin.ee/oS0Owml" class="ins-card" target="_blank">
+    <div class="ins-icon">🔍</div>
+    <div class="ins-title">免費保單健診</div>
+    <div class="ins-desc">不知道保障夠不夠？讓我幫你全面檢視，找出缺口，不多買不少買！</div>
+    <span class="ins-cta ins-cta-red">立即預約 →</span>
+  </a>
+</div>
+
+<!-- ══════ FIXED RIGHT SIDEBAR ══════ -->
+<div class="ad-sidebar ad-right">
+  <div class="contact-wrap">
+    <div class="contact-name">Nicholas 謝</div>
+    <div class="contact-title">專業保險顧問</div>
+
+    <div class="qr-box">
+      <img src="line-qr.png" alt="LINE QR Code"
+        onerror="this.style.display='none';document.getElementById('qr-fb').style.display='block'">
+      <div id="qr-fb" class="qr-fallback" style="display:none">
+        📲 掃描加入 LINE<br>@762rgtoe
+      </div>
+    </div>
+    <div class="qr-hint">掃描 QR Code 加好友</div>
+
+    <div class="line-id-badge">LINE ID：<strong>@762rgtoe</strong></div>
+
+    <a href="https://lin.ee/oS0Owml" class="contact-btn btn-line-green" target="_blank">
+      💬 LINE 立即諮詢
+    </a>
+    <a href="https://www.instagram.com/ctse.nicholas/" class="contact-btn btn-ig" target="_blank">
+      📸 Instagram
+    </a>
+
+    <hr class="ad-divider">
+
+    <a href="https://lin.ee/oS0Owml" class="health-cta" target="_blank">
+      🔍 免費保單健診<br>
+      <small style="font-weight:normal;font-size:.88em">找出你的保障缺口</small>
+    </a>
+
+    <div class="trust-badge">
+      ✅ 不推銷&nbsp;&nbsp;✅ 不催促<br>✅ 專業&nbsp;&nbsp;✅ 誠信
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MAIN CONTENT (with margins for sidebars) ══════ -->
+<div class="main-wrapper">
+  <div class="wrap">
+    <h1>商品資料清理</h1>
+    <p class="sub">
+      清理「商品名稱」、「商品規格名稱」中的特殊符號與全形字元<br>
+      <small style="color:#27ae60">&#x2705; ZIP 層 XML 手術，100% 保留原始格式、樣式、凍結窗格、隱藏列</small>
+    </p>
+
+    <div class="card">
+      <h3>處理規則</h3>
+      <ul class="rule-list">
+        <li>「<strong>商品名稱</strong>」：全形 → 半形，特殊符號 → 空格</li>
+        <li>「<strong>商品規格名稱</strong>」：同上</li>
+      </ul>
+    </div>
+
+    <div id="libErr"></div>
+    <div id="jsErr" style="display:none" class="err-box"></div>
+
+    <input type="file" id="fileInput" multiple accept=".xlsx" style="display:none">
+
+    <div class="drop-zone" id="dropZone">
+      <div class="drop-icon">&#x1F4C2;</div>
+      <div><strong>將 .xlsx 檔案拖曳到此處</strong></div>
+      <button type="button" class="btn-browse" id="browseBtn">選擇檔案</button>
+      <div class="hint">可同時選取多個檔案</div>
+    </div>
+
+    <div id="fileList"></div>
+    <button type="button" class="btn-process" id="processBtn" disabled>開始清理</button>
+    <div id="results"></div>
+  </div>
+</div>
+
+<!-- ══════ BOTTOM BANNER ══════ -->
+<div class="ad-bottom">
+  <div class="ad-bottom-inner">
+    <div class="footer-tagline">
+      🛡️ 讓保障守護你的每一天
+      <small>Nicholas 謝 · 專業保險顧問 · 為你量身打造最合適的保障方案</small>
+    </div>
+    <div class="footer-products">
+      <a href="https://lin.ee/oS0Owml" class="footer-tag" target="_blank">✈️ 旅平險</a>
+      <a href="https://lin.ee/oS0Owml" class="footer-tag" target="_blank">🏥 醫療險</a>
+      <a href="https://lin.ee/oS0Owml" class="footer-tag" target="_blank">🛡️ 意外險</a>
+      <a href="https://lin.ee/oS0Owml" class="footer-tag" target="_blank">💰 儲蓄險</a>
+      <a href="https://lin.ee/oS0Owml" class="footer-tag" target="_blank">🔍 保單健診</a>
+    </div>
+    <div class="footer-contacts">
+      <a href="https://lin.ee/oS0Owml" class="footer-btn footer-line" target="_blank">💬 LINE 諮詢</a>
+      <a href="https://www.instagram.com/ctse.nicholas/" class="footer-btn footer-ig" target="_blank">📸 Instagram</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ YOUTUBE MODAL ══════ -->
+<div class="yt-overlay" id="ytOverlay">
+  <div class="yt-box">
+    <a class="yt-thumb" href="https://youtu.be/4GI2Xcl4v8s" target="_blank">
+      <img src="https://img.youtube.com/vi/4GI2Xcl4v8s/hqdefault.jpg" alt="YouTube 影片預覽">
+      <div class="yt-play">&#9654;</div>
+    </a>
+    <div class="yt-footer">
+      <div class="yt-opened">✅ 影片已在新視窗開啟，點擊縮圖可再次開啟</div>
+      <div class="yt-countdown" id="ytCountdown">⏳ 請觀看 30 秒後可關閉</div>
+      <button class="yt-close" id="ytClose" disabled onclick="closeYt()">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SCRIPTS ══════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script>
+// ── Error display ─────────────────────────────────────────
+window.onerror = function (msg, src, line) {
+  var b = document.getElementById('jsErr');
+  b.style.display = 'block';
+  b.textContent = '⚠ JS Error: ' + msg + ' (line ' + line + ')';
+};
+window.addEventListener('unhandledrejection', function (e) {
+  var b = document.getElementById('jsErr');
+  b.style.display = 'block';
+  b.textContent = '⚠ Error: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason));
+});
+
+// ── YouTube modal ─────────────────────────────────────────
+var ytTimer = null;
+
+function showYt() {
+  var overlay = document.getElementById('ytOverlay');
+  var cd      = document.getElementById('ytCountdown');
+  var btn     = document.getElementById('ytClose');
+  var secs    = 30;
+  window.open('https://youtu.be/4GI2Xcl4v8s', '_blank');
+  btn.disabled = true;
+  cd.textContent = '⏳ 請觀看 ' + secs + ' 秒後可關閉';
+  overlay.classList.add('open');
+  ytTimer = setInterval(function () {
+    secs--;
+    if (secs > 0) {
+      cd.textContent = '⏳ 請觀看 ' + secs + ' 秒後可關閉';
+    } else {
+      clearInterval(ytTimer);
+      cd.textContent = '✅ 感謝觀看！可以關閉';
+      btn.disabled = false;
+    }
+  }, 1000);
+}
+
+function closeYt() {
+  clearInterval(ytTimer);
+  document.getElementById('ytOverlay').classList.remove('open');
+}
+
+// ── Config ────────────────────────────────────────────────
+var TARGETS = ['商品名稱', '商品規格名稱'];
+
+var CJK_MAP = [
+  ['。','.'],['、',','],['「','"'],['」','"'],
+  ['『',"'"],['』',"'"],['【','['],['】',']'],
+  ['《','<'],['》','>'],['〈','<'],['〉','>'],
+  ['〔','['],['〕',']'],['—','-'],['–','-'],
+  ['―','-'],['…','...'],['·','.'],['・','.'],
+  ['‘',"'"],['’',"'"],['“','"'],['”','"'],
+  ['　',' ']
+];
+
+var KEEP_RE = new RegExp(
+  '[^' +
+  '一-鿿' +   // CJK Unified Ideographs
+  '㐀-䶿' +   // CJK Extension A
+  '豈-﫿' +   // CJK Compatibility Ideographs
+  '가-힯' +   // Hangul Syllables
+  'ぁ-ゟ' +   // Hiragana
+  '゠-ヿ' +   // Katakana
+  ' -~' +   // ASCII printable
+  'À-ɏ' +   // Latin Extended A+B
+  ']', 'g');
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function cleanStr(v) {
+  if (v == null) { return v; }
+  var s = String(v);
+  if (!s.trim()) { return v; }
+  s = s.normalize('NFKC');
+  for (var i = 0; i < CJK_MAP.length; i++) {
+    s = s.split(CJK_MAP[i][0]).join(CJK_MAP[i][1]);
+  }
+  s = s.replace(KEEP_RE, ' ');
+  return s.replace(/\s+/g, ' ').trim();
+}
+
+function normHeader(v) {
+  return String(v == null ? '' : v).trim().normalize('NFKC');
+}
+
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function xmlEnc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+var files   = [];
+var results = [];
+
+// ── UI wiring ─────────────────────────────────────────────────────────────────
+var fileInput  = document.getElementById('fileInput');
+var browseBtn  = document.getElementById('browseBtn');
+var processBtn = document.getElementById('processBtn');
+var dropZone   = document.getElementById('dropZone');
+
+// "選擇檔案" button → directly call input.click() (always allowed as direct user gesture)
+browseBtn.addEventListener('click', function () {
+  fileInput.click();
+});
+
+// File input change
+fileInput.addEventListener('change', function () {
+  addFiles(Array.prototype.slice.call(fileInput.files));
+  fileInput.value = '';
+});
+
+// Drag-and-drop on the drop zone div
+dropZone.addEventListener('dragover', function (e) {
+  e.preventDefault();
+  dropZone.classList.add('over');
+});
+dropZone.addEventListener('dragleave', function (e) {
+  if (!dropZone.contains(e.relatedTarget)) {
+    dropZone.classList.remove('over');
+  }
+});
+dropZone.addEventListener('drop', function (e) {
+  e.preventDefault();
+  dropZone.classList.remove('over');
+  addFiles(Array.prototype.slice.call(e.dataTransfer.files));
+});
+
+// Process button
+processBtn.addEventListener('click', processAll);
+
+// Library check after 4s
+setTimeout(function () {
+  if (typeof XLSX === 'undefined' || typeof JSZip === 'undefined') {
+    document.getElementById('libErr').innerHTML =
+      '<div class="err-box">&#x26A0; 函式庫載入失敗，請確認網路連線後重新整理頁面。</div>';
+  }
+}, 4000);
+
+// ── File management ───────────────────────────────────────────────────────────
+function addFiles(list) {
+  list.forEach(function (f) {
+    if (!f.name.toLowerCase().endsWith('.xlsx')) { return; }
+    for (var i = 0; i < files.length; i++) {
+      if (files[i].name === f.name && files[i].size === f.size) { return; }
+    }
+    files.push(f);
+  });
+  renderFileList();
+}
+
+function removeFile(i) {
+  files.splice(i, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  document.getElementById('fileList').innerHTML = files.map(function (f, i) {
+    return '<div class="file-item">' +
+      '<span class="file-name">' + esc(f.name) + '</span>' +
+      '<span class="file-size">' + (f.size / 1024).toFixed(1) + ' KB</span>' +
+      '<button class="rm" onclick="removeFile(' + i + ')">移除</button>' +
+    '</div>';
+  }).join('');
+  processBtn.disabled = (files.length === 0);
+}
+
+// ── Process all files ─────────────────────────────────────────────────────────
+function processAll() {
+  if (typeof XLSX === 'undefined' || typeof JSZip === 'undefined') {
+    alert('函式庫未載入，請檢查網路連線並重新整理頁面。');
+    return;
+  }
+  processBtn.disabled = true;
+  processBtn.textContent = '處理中…';
+  results = [];
+  document.getElementById('results').innerHTML = '';
+  showYt();
+
+  Promise.all(files.map(processFile)).then(function (res) {
+    results = res;
+    renderResults();
+    processBtn.disabled = false;
+    processBtn.textContent = '開始清理';
+  }).catch(function (err) {
+    alert('處理失敗：' + (err && err.message ? err.message : String(err)));
+    processBtn.disabled = false;
+    processBtn.textContent = '開始清理';
+  });
+}
+
+// ── Process one file ──────────────────────────────────────────────────────────
+function processFile(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = function () { reject(new Error('Cannot read ' + file.name)); };
+    reader.onload = function (e) {
+      try { processFileData(file, e.target.result, resolve, reject); }
+      catch (ex) { reject(ex); }
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function processFileData(file, ab, resolve, reject) {
+  // ── Phase 1: SheetJS — detect which cells need cleaning ──────────────────
+  var wb = XLSX.read(new Uint8Array(ab), { type: 'array', cellStyles: false });
+  var diag         = [];
+  var changes      = [];      // one entry per cell (shown in UI)
+  var needsBySheet = {};      // 'sheet1' → [{addr, cleaned}, ...]
+
+  wb.SheetNames.forEach(function (shName, shIdx) {
+    var ws = wb.Sheets[shName];
+    if (!ws || !ws['!ref']) { return; }
+    var range = XLSX.utils.decode_range(ws['!ref']);
+
+    // Find first row that contains any target column header
+    var hdrRow = -1;
+    outer:
+    for (var R = range.s.r; R <= range.e.r; R++) {
+      for (var C = range.s.c; C <= range.e.c; C++) {
+        var hc = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+        if (hc && TARGETS.indexOf(normHeader(hc.v)) !== -1) {
+          hdrRow = R;
+          break outer;
+        }
+      }
+    }
+
+    if (hdrRow === -1) {
+      diag.push({ name: shName, hdrRow: -1, rowCount: 0, cols: [] });
+      return;
+    }
+
+    // Map column index → column name for target columns
+    var targetCols = {};
+    var allCols    = [];
+    for (var C = range.s.c; C <= range.e.c; C++) {
+      var hc = ws[XLSX.utils.encode_cell({ r: hdrRow, c: C })];
+      if (!hc || hc.v == null || hc.v === '') { continue; }
+      var h = normHeader(hc.v);
+      allCols.push({ norm: h, hit: TARGETS.indexOf(h) !== -1 });
+      if (TARGETS.indexOf(h) !== -1) { targetCols[C] = String(hc.v); }
+    }
+    diag.push({ name: shName, hdrRow: hdrRow + 1, rowCount: range.e.r - hdrRow, cols: allCols });
+
+    if (Object.keys(targetCols).length === 0) { return; }
+
+    var shKey = 'sheet' + (shIdx + 1);
+    needsBySheet[shKey] = [];
+
+    for (var R = hdrRow + 1; R <= range.e.r; R++) {
+      var cols = Object.keys(targetCols);
+      for (var ci = 0; ci < cols.length; ci++) {
+        var C    = parseInt(cols[ci], 10);
+        var addr = XLSX.utils.encode_cell({ r: R, c: C });
+        var cell = ws[addr];
+        if (!cell || cell.v == null || cell.v === '') { continue; }
+        var raw     = String(cell.v);
+        var cleaned = cleanStr(raw);
+        if (raw === cleaned) { continue; }
+        needsBySheet[shKey].push({ addr: addr, cleaned: cleaned });
+        changes.push({ sheet: shName, row: R + 1, col: targetCols[C], before: raw, after: cleaned });
+      }
+    }
+  });
+
+  // ── Phase 2+3: JSZip — patch sharedStrings.xml ───────────────────────────
+  JSZip.loadAsync(ab).then(function (zip) {
+    var ssFile = zip.file('xl/sharedStrings.xml');
+
+    if (!ssFile || changes.length === 0) {
+      return zip.generateAsync({ type: 'blob', compression: 'DEFLATE' })
+        .then(function (blob) { resolve({ file: file, blob: blob, changes: [], diag: diag }); });
+    }
+
+    return ssFile.async('string').then(function (ssXml) {
+      var ssIdxToClean = {};
+
+      var sheetKeys = Object.keys(needsBySheet);
+      return Promise.all(sheetKeys.map(function (shKey) {
+        var entry = zip.file('xl/worksheets/' + shKey + '.xml');
+        if (!entry) { return null; }
+        return entry.async('string').then(function (shXml) {
+          return { shKey: shKey, shXml: shXml };
+        });
+      })).then(function (sheetResults) {
+        sheetResults.forEach(function (sr) {
+          if (!sr) { return; }
+          needsBySheet[sr.shKey].forEach(function (need) {
+            // Find the shared-string index for this cell address
+            var searchStr = 'r="' + need.addr + '"';
+            var rPos = sr.shXml.indexOf(searchStr);
+            if (rPos === -1) { return; }
+            var cStart = sr.shXml.lastIndexOf('<c', rPos);
+            if (cStart === -1) { return; }
+            var cClose = sr.shXml.indexOf('>', cStart);
+            if (cClose === -1) { return; }
+            var ctag = sr.shXml.slice(cStart, cClose + 1);
+            if (ctag.indexOf('t="s"') === -1) { return; }
+            var endC  = sr.shXml.indexOf('</c>', cClose);
+            var inner = sr.shXml.slice(cClose + 1, endC === -1 ? sr.shXml.length : endC);
+            var m = /<v>(\d+)<\/v>/.exec(inner);
+            if (m) { ssIdxToClean[parseInt(m[1], 10)] = need.cleaned; }
+          });
+        });
+
+        zip.file('xl/sharedStrings.xml', rebuildSS(ssXml, ssIdxToClean));
+
+        return zip.generateAsync({ type: 'blob', compression: 'DEFLATE',
+                                   compressionOptions: { level: 6 } })
+          .then(function (blob) { resolve({ file: file, blob: blob, changes: changes, diag: diag }); });
+      });
+    });
+  }).catch(reject);
+}
+
+// ── Rebuild sharedStrings.xml ─────────────────────────────────────────────────
+function rebuildSS(xml, ssIdxToClean) {
+  if (Object.keys(ssIdxToClean).length === 0) { return xml; }
+  var result  = [];
+  var pos     = 0;
+  var siIdx   = 0;
+  var OPEN    = '<si>';
+  var CLOSE   = '</si>';
+  var first   = xml.indexOf(OPEN);
+  if (first === -1) { return xml; }
+  result.push(xml.slice(0, first));
+  pos = first;
+  while (pos < xml.length) {
+    var s = xml.indexOf(OPEN, pos);
+    if (s === -1) { result.push(xml.slice(pos)); break; }
+    var e = xml.indexOf(CLOSE, s);
+    if (e === -1) { result.push(xml.slice(pos)); break; }
+    e += CLOSE.length;
+    if (ssIdxToClean.hasOwnProperty(siIdx)) {
+      result.push('<si><t xml:space="preserve">' + xmlEnc(ssIdxToClean[siIdx]) + '</t></si>');
+    } else {
+      result.push(xml.slice(s, e));
+    }
+    pos = e;
+    siIdx++;
+  }
+  return result.join('');
+}
+
+// ── Download ──────────────────────────────────────────────────────────────────
+function download(idx) {
+  var r   = results[idx];
+  var url = URL.createObjectURL(r.blob);
+  var a   = document.createElement('a');
+  a.href     = url;
+  a.download = r.file.name.replace(/\.xlsx$/i, '_cleaned.xlsx');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Render results ────────────────────────────────────────────────────────────
+function toggleDetail(id) {
+  var el  = document.getElementById(id);
+  var btn = document.getElementById('tog-' + id);
+  var now = el.classList.toggle('open');
+  btn.textContent = now ? '收合明細' : '查看變更明細';
+}
+
+function renderResults() {
+  document.getElementById('results').innerHTML = results.map(function (r, idx) {
+    var did = 'det-' + idx;
+
+    var diagHtml = r.diag.map(function (s) {
+      if (s.hdrRow === -1) {
+        return '<div><strong>' + esc(s.name) + '</strong>' +
+          ' <span style="color:#c0392b">&#x26A0; 未找到目標欄位</span></div>';
+      }
+      var tags = s.cols.map(function (c) {
+        return '<span class="col-tag ' + (c.hit ? 'col-hit' : 'col-nrm') + '">' + esc(c.norm) + '</span>';
+      }).join('');
+      return '<div style="margin-bottom:6px"><strong>' + esc(s.name) + '</strong>' +
+        ' 標題在第 ' + s.hdrRow + ' 行，共 ' + s.rowCount + ' 筆資料' +
+        '<div class="diag-cols">' + tags + '</div></div>';
+    }).join('');
+
+    var tRows = r.changes.slice(0, 200).map(function (c) {
+      return '<tr><td>' + esc(c.sheet) + '</td>' +
+        '<td style="text-align:center">' + c.row + '</td>' +
+        '<td>' + esc(c.col) + '</td>' +
+        '<td class="old">' + esc(c.before) + '</td>' +
+        '<td class="new">' + esc(c.after) + '</td></tr>';
+    }).join('');
+
+    var more = r.changes.length > 200
+      ? '<tr><td colspan="5" style="text-align:center;color:#aaa;font-style:italic">' +
+          '… 還有 ' + (r.changes.length - 200) + ' 筆未顯示</td></tr>'
+      : '';
+
+    var changeHtml = r.changes.length > 0
+      ? '<button class="tog-btn" id="tog-' + did + '" onclick="toggleDetail(\'' + did + '\')">' +
+          '查看變更明細</button>' +
+        '<div class="detail" id="' + did + '">' +
+          '<table><thead><tr><th>工作表</th><th>行</th><th>欄位</th>' +
+          '<th>修改前</th><th>修改後</th></tr></thead>' +
+          '<tbody>' + tRows + more + '</tbody></table></div>'
+      : '<p class="no-change">此檔案無需修改</p>';
+
+    return '<div class="result-card">' +
+      '<div class="result-hd">' +
+        '<span class="fname">' + esc(r.file.name) + '</span>' +
+        '<button class="btn-green" onclick="download(' + idx + ')">下載清理後檔案</button>' +
+      '</div>' +
+      '<div class="result-bd">' +
+        '<div class="stats"><div class="stat">' +
+          '<div class="stat-num">' + r.changes.length + '</div>' +
+          '<div class="stat-lbl">總修改數</div></div></div>' +
+        '<details class="diag"><summary>偵測到的欄位</summary>' +
+          '<div class="diag-body">' + diagHtml + '</div></details>' +
+        changeHtml +
+      '</div></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>
